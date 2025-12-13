@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   description: "Find vacation rentals, cabins, beach houses, unique homes and experiences around the world - all made possible by hosts on Airbnb.",
 };
 
-import { ThemeProvider } from "@/contexts";
+import { ThemeProvider, AuthProvider } from "@/contexts";
 
 export default function RootLayout({
   children,
@@ -22,7 +22,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} antialiased font-sans`}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider>{children}</ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -13,3 +13,5 @@ export * from "./Textarea";
 export * from "./Table";
 export * from "./Checkbox";
 export * from "./PasswordStrength";
+export * from "./ImageUpload";
+export * from "./RichTextEditor";

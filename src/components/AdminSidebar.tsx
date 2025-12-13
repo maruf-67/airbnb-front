@@ -14,7 +14,7 @@ import { deleteCookie } from 'cookies-next';
 const navigation = [
     { name: 'Dashboard', href: '/admin', icon: HomeIcon },
     { name: 'Users', href: '/users', icon: UsersIcon },
-    { name: 'Posts', href: '/posts', icon: DocumentTextIcon },
+    { name: 'Posts', href: '/admin/posts', icon: DocumentTextIcon },
     { name: 'Pricing', href: '/pricing', icon: CurrencyDollarIcon },
 ];
 

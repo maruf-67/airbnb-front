@@ -4,12 +4,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { setCookie } from 'cookies-next';
+import { useAuth } from '@/contexts';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import AirbnbLogo from '@/components/AirbnbLogo';
 
 export default function RegisterPage() {
-    const router = useRouter();
+    const { login } = useAuth();
+    // const router = useRouter(); // Handled by context
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -28,12 +30,9 @@ export default function RegisterPage() {
             const response = await api.post('/auth/register', formData);
             const { user, accessToken } = response.data.data;
 
-            setCookie('token', accessToken, { maxAge: 60 * 60 * 24 * 3 }); // 3 days
-            setCookie('user', JSON.stringify(user), { maxAge: 60 * 60 * 24 * 3 });
-
-            router.push('/');
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Registration failed');
+            login(user, accessToken);
+        } catch (err) {
+            setError((err as any).response?.data?.message || 'Registration failed');
         } finally {
             setLoading(false);
         }

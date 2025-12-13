@@ -4,12 +4,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
-import { setCookie } from 'cookies-next';
+import { useAuth } from '@/contexts';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import AirbnbLogo from '@/components/AirbnbLogo';
 
 export default function LoginPage() {
-    const router = useRouter();
+    const { login } = useAuth();
+    const router = useRouter(); // Keep router in case direct navigation needed elsewhere, but mostly context handles it? actually context login handles redirect, so maybe I don't need to push manually. But keep it compatible.
+    // Wait, context implementation:
+    // const login = (userData, token) => { ... router.push(...) }
+    // So I don't need router.push here.
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -27,16 +32,10 @@ export default function LoginPage() {
             const response = await api.post('/auth/login', formData);
             const { user, accessToken } = response.data.data;
 
-            setCookie('token', accessToken, { maxAge: 60 * 60 * 24 * 3 }); // 3 days
-            setCookie('user', JSON.stringify(user), { maxAge: 60 * 60 * 24 * 3 });
-
-            if (user.role && user.role.type === 'admin') {
-                router.push('/admin');
-            } else {
-                router.push('/');
-            }
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Login failed');
+            login(user, accessToken);
+            // Router redirect handled in login()
+        } catch (err) {
+            setError((err as any).response?.data?.message || 'Login failed');
         } finally {
             setLoading(false);
         }

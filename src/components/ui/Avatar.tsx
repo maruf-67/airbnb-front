@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { BASE_URL } from "@/lib/api";
 
 interface AvatarProps {
     src?: string;
@@ -55,7 +56,7 @@ export function Avatar({ src, name, size = "md", className }: AvatarProps) {
         return (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-                src={src}
+                src={src.startsWith('/') ? `${BASE_URL}${src}` : src}
                 alt={name}
                 className={cn(
                     "rounded-full object-cover",

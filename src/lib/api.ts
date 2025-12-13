@@ -2,6 +2,7 @@ import axios from 'axios';
 import { getCookie, deleteCookie } from 'cookies-next';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3050/api/v1';
+export const BASE_URL = API_URL.replace(/\/api\/v1\/?$/, '');
 
 export const api = axios.create({
     baseURL: API_URL,

@@ -4,6 +4,8 @@ export interface User {
     name: string;
     email: string;
     role: {
+        id?: string;
+        _id?: string;
         name: string;
         title: string;
         type: string;
@@ -25,16 +27,22 @@ export interface UserFormData {
 }
 
 export interface Post {
-    id: string;
+    _id: string; // Mongoose ID
     title: string;
-    content: string;
-    authorId: string;
-    author: {
+    description: string;
+    price: number;
+    location: string;
+    images: string[];
+    maxGuests: number;
+    amenities: string[];
+    isPublished: boolean;
+    owner: {
+        _id: string;
         name: string;
         email: string;
         avatar?: string;
-    };
-    published: boolean;
+    } | string; // Can be string ID or populated object
+    rating?: number; // Optional until reviews are implemented
     createdAt: string;
     updatedAt: string;
 }

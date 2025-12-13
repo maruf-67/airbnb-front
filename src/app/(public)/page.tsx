@@ -7,8 +7,10 @@ import ListingCard from '@/components/ListingCard';
 import AirbnbLogo from '@/components/AirbnbLogo';
 import { MagnifyingGlassIcon, UserCircleIcon, Bars3Icon, GlobeAltIcon } from '@heroicons/react/24/outline';
 
+import { Post } from '@/types';
+
 export default function Home() {
-    const [posts, setPosts] = useState<any[]>([]);
+    const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {

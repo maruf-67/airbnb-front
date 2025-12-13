@@ -1,8 +1,17 @@
+'use client';
+
+import { useAuth } from '@/contexts';
+import Link from 'next/link';
+import { Menu } from '@headlessui/react';
+import { UserCircleIcon, Bars3Icon } from '@heroicons/react/24/solid';
+
 export default function AirbnbNav() {
+  const { user, logout } = useAuth();
+
   return (
     <div className="flex w-full items-center gap-6">
       {/* Logo */}
-      <div className="relative h-8 w-[102px] flex-1 overflow-clip min-w-px min-h-px">
+      <Link href="/" className="relative h-8 w-[102px] flex-1 overflow-clip min-w-px min-h-px block">
         <svg
           className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-[102px]"
           viewBox="0 0 102 32"
@@ -13,23 +22,23 @@ export default function AirbnbNav() {
             fill="white"
           />
         </svg>
-      </div>
+      </Link>
 
       {/* Pages */}
-      <div className="flex shrink-0 items-start gap-8">
-        <div className="flex flex-col items-center gap-1 shrink-0">
+      <div className="hidden md:flex shrink-0 items-start gap-8">
+        <div className="flex flex-col items-center gap-1 shrink-0 cursor-pointer">
           <p className="text-base font-normal leading-6 text-white whitespace-nowrap">
             Places to stay
           </p>
           <div className="h-0.5 w-4 bg-white rounded-full" />
         </div>
-        <div className="flex flex-col items-center gap-1 shrink-0">
+        <div className="flex flex-col items-center gap-1 shrink-0 cursor-pointer opacity-70 hover:opacity-100">
           <p className="text-base font-normal leading-6 text-white whitespace-nowrap">
             Experiences
           </p>
           <div className="h-0.5 w-4 bg-white rounded-full opacity-0" />
         </div>
-        <div className="flex flex-col items-center gap-1 shrink-0">
+        <div className="flex flex-col items-center gap-1 shrink-0 cursor-pointer opacity-70 hover:opacity-100">
           <p className="text-base font-normal leading-6 text-white whitespace-nowrap">
             Online Experiences
           </p>
@@ -39,58 +48,127 @@ export default function AirbnbNav() {
 
       {/* Right Section */}
       <div className="flex flex-1 items-center justify-end gap-4 min-w-px min-h-px">
-        <p className="text-sm font-medium leading-5 text-white whitespace-nowrap">
+        <p className="text-sm font-medium leading-5 text-white whitespace-nowrap cursor-pointer hover:bg-white/10 px-4 py-2 rounded-full transition hidden sm:block">
           Become a Host
         </p>
 
         {/* Globe Icon */}
-        <div className="relative size-6 overflow-clip shrink-0">
+        <div className="relative size-6 overflow-clip shrink-0 cursor-pointer hover:bg-white/10 p-1 rounded-full w-10 h-10 flex items-center justify-center transition">
           <svg
-            className="size-full"
+            className="size-4"
             viewBox="0 0 24 24"
             fill="none"
             stroke="white"
-            strokeWidth="1.5"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
             <circle cx="12" cy="12" r="10" />
+            <line x1="2" y1="12" x2="22" y2="12" />
             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            <path d="M2 12h20" />
           </svg>
         </div>
 
         {/* Profile Dropdown */}
-        <div className="flex items-center gap-2 bg-white rounded-full py-2 pl-4 pr-2 shrink-0">
-          {/* Menu Icon */}
-          <div className="relative size-6 overflow-clip shrink-0">
-            <svg
-              className="size-full"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#111827"
-              strokeWidth="1.5"
-            >
-              <line x1="4" y1="6" x2="20" y2="6" />
-              <line x1="4" y1="12" x2="20" y2="12" />
-              <line x1="4" y1="18" x2="20" y2="18" />
-            </svg>
-          </div>
-
-          {/* Avatar */}
-          <div className="relative size-8 shrink-0 rounded-full bg-gray-100 overflow-clip">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <svg
-                className="size-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#6B7280"
-                strokeWidth="1.5"
-              >
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
+        <Menu as="div" className="relative">
+          <Menu.Button className="flex items-center gap-2 bg-white rounded-full p-1 pl-3 pr-1 shrink-0 hover:shadow-md transition cursor-pointer border border-gray-200">
+            <Bars3Icon className="h-4 w-4 text-gray-700" />
+            <div className="relative size-8 shrink-0 rounded-full bg-gray-500 overflow-hidden text-gray-500">
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                <UserCircleIcon className="w-full h-full text-gray-400 bg-gray-100" />
+              )}
             </div>
-          </div>
-        </div>
+          </Menu.Button>
+
+          <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right divide-y divide-gray-100 rounded-xl bg-white shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none overflow-hidden z-50">
+            {user ? (
+              <>
+                <div className="px-4 py-3">
+                  <p className="text-sm text-gray-900 font-semibold truncate">Hello, {user.name.split(' ')[0]}</p>
+                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                </div>
+                <div className="py-1">
+                  <Menu.Item>
+                    {({ active }) => (
+                      <Link href="/account" className={`${active ? 'bg-gray-50' : ''} block px-4 py-2 text-sm text-gray-700`}>
+                        Account
+                      </Link>
+                    )}
+                  </Menu.Item>
+                  {user.role?.type === 'admin' && (
+                    <Menu.Item>
+                      {({ active }) => (
+                        <Link href="/admin" className={`${active ? 'bg-gray-50' : ''} block px-4 py-2 text-sm text-gray-700`}>
+                          Admin Panel
+                        </Link>
+                      )}
+                    </Menu.Item>
+                  )}
+                  <Menu.Item>
+                    {({ active }) => (
+                      <Link href="/trips" className={`${active ? 'bg-gray-50' : ''} block px-4 py-2 text-sm text-gray-700`}>
+                        My Trips
+                      </Link>
+                    )}
+                  </Menu.Item>
+                  <Menu.Item>
+                    {({ active }) => (
+                      <Link href="/wishlists" className={`${active ? 'bg-gray-50' : ''} block px-4 py-2 text-sm text-gray-700`}>
+                        Wishlists
+                      </Link>
+                    )}
+                  </Menu.Item>
+                </div>
+                <div className="py-1">
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={logout}
+                        className={`${active ? 'bg-gray-50' : ''} block w-full text-left px-4 py-2 text-sm text-gray-700`}
+                      >
+                        Log out
+                      </button>
+                    )}
+                  </Menu.Item>
+                </div>
+              </>
+            ) : (
+              <div className="py-1">
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link href="/login" className={`${active ? 'bg-gray-50' : ''} block px-4 py-2 text-sm font-semibold text-gray-900`}>
+                      Log in
+                    </Link>
+                  )}
+                </Menu.Item>
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link href="/register" className={`${active ? 'bg-gray-50' : ''} block px-4 py-2 text-sm text-gray-700`}>
+                      Sign up
+                    </Link>
+                  )}
+                </Menu.Item>
+                <div className="border-t border-gray-100 my-1"></div>
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link href="#" className={`${active ? 'bg-gray-50' : ''} block px-4 py-2 text-sm text-gray-700`}>
+                      Airbnb your home
+                    </Link>
+                  )}
+                </Menu.Item>
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link href="#" className={`${active ? 'bg-gray-50' : ''} block px-4 py-2 text-sm text-gray-700`}>
+                      Help Center
+                    </Link>
+                  )}
+                </Menu.Item>
+              </div>
+            )}
+          </Menu.Items>
+        </Menu>
       </div>
     </div>
   );

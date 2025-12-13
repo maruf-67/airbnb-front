@@ -1,21 +1,16 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { StarIcon } from '@heroicons/react/24/solid';
 
+import { Post } from '@/types';
+
 type ListingCardProps = {
-    post: {
-        _id: string;
-        title: string;
-        description: string;
-        price: number;
-        location: string;
-        images: string[];
-        rating?: number;
-    };
+    post: Post;
 };
 
 export default function ListingCard({ post }: ListingCardProps) {
     return (
-        <div className="group relative cursor-pointer">
+        <Link href={`/listings/${post._id}`} className="group relative cursor-pointer block">
             <div className="aspect-square w-full overflow-hidden rounded-xl bg-gray-200 dark:bg-neutral-800 relative">
                 <Image
                     src={post.images[0] || 'https://placehold.co/600x400'}
@@ -42,6 +37,6 @@ export default function ListingCard({ post }: ListingCardProps) {
                     <span className="text-foreground">{post.rating || 'New'}</span>
                 </div>
             </div>
-        </div>
+        </Link>
     );
 }

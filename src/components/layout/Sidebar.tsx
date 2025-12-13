@@ -14,7 +14,8 @@ import {
     User,
     LogOut,
     DollarSign,
-    UserCog
+    UserCog,
+    FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui";
@@ -38,6 +39,11 @@ interface NavItem {
 const navigation: NavItem[] = [
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     {
+        name: 'Posts',
+        href: '/admin/posts',
+        icon: FileText,
+    },
+    {
         name: "Users",
         icon: Users,
         children: [
@@ -47,11 +53,9 @@ const navigation: NavItem[] = [
     },
     {
         name: "Roles & Permissions",
+        href: "/admin/roles",
         icon: User, // Using User icon as placeholder/fallback, could use Shield
-        children: [
-            { name: "Roles", href: "/admin/roles" },
-            { name: "Permissions", href: "/admin/permissions" },
-        ],
+
     },
     { name: "Listings", href: "/admin/listings", icon: Home },
     { name: "Pricing", href: "/admin/pricing", icon: DollarSign },

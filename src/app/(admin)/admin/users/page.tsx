@@ -29,6 +29,10 @@ export default function UsersPage() {
     const [search, setSearch] = useState("");
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
+    const [sortBy, setSortBy] = useState("createdAt");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+    const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+
     const createModal = useModal();
     const editModal = useModal();
     const deleteModal = useModal();
@@ -41,12 +45,16 @@ export default function UsersPage() {
             const queryParams = new URLSearchParams({
                 page: page.toString(),
                 limit: perPage.toString(),
+                roleType: "user",
+                sort: sortBy,
+                order: sortOrder,
+                ...(statusFilter !== "all" && { isActive: (statusFilter === "active").toString() }),
                 ...(debouncedSearch && { search: debouncedSearch }),
             });
 
             const res = await api.get(`/users?${queryParams}`);
-            setUsers(res.data.users);
-            setTotalItems(res.data.total);
+            setUsers(res.data.data.users);
+            setTotalItems(res.data.data.pagination.total);
         } catch (error) {
             console.error("Failed to fetch users:", error);
         } finally {
@@ -56,7 +64,7 @@ export default function UsersPage() {
 
     useEffect(() => {
         fetchUsers();
-    }, [page, perPage, debouncedSearch]);
+    }, [page, perPage, debouncedSearch, sortBy, sortOrder, statusFilter]);
 
     const handleCreate = async (data: UserFormData) => {
         try {
@@ -72,7 +80,7 @@ export default function UsersPage() {
     const handleEdit = async (data: UserFormData) => {
         if (!selectedUser) return;
         try {
-            await api.put(`/users/${selectedUser.id}`, data);
+            await api.put(`/users/${selectedUser._id}`, data);
             fetchUsers();
             editModal.close();
             setSelectedUser(null);
@@ -85,7 +93,7 @@ export default function UsersPage() {
     const handleDelete = async () => {
         if (!selectedUser) return;
         try {
-            await api.delete(`/users/${selectedUser.id}`);
+            await api.delete(`/users/${selectedUser._id}`);
             fetchUsers();
             deleteModal.close();
             setSelectedUser(null);
@@ -109,7 +117,7 @@ export default function UsersPage() {
         {
             key: "name",
             header: "User",
-            sortable: false,
+            sortable: true,
             render: (user) => (
                 <div className="flex items-center gap-3">
                     <Avatar name={user.name} src={user.avatar} size="sm" />
@@ -123,12 +131,14 @@ export default function UsersPage() {
         {
             key: "role",
             header: "Role",
-            sortable: false,
-            render: (user) => <Badge variant={user.role.type === "admin" ? "default" : "secondary"}>{user.role.title}</Badge>,
+            sortable: true,
+            // @ts-ignore - Role might be populated
+            render: (user) => <Badge variant={user.role.type === "admin" ? "default" : "secondary"}>{user.role.title || user.role.name}</Badge>,
         },
         {
             key: "isActive",
             header: "Status",
+            sortable: true,
             render: (user) => (
                 <Badge variant={user.isActive ? "success" : "danger"}>
                     {user.isActive ? "Active" : "Inactive"}
@@ -138,6 +148,7 @@ export default function UsersPage() {
         {
             key: "createdAt",
             header: "Joined",
+            sortable: true,
             render: (user) => new Date(user.createdAt).toLocaleDateString(),
         },
     ];
@@ -151,10 +162,21 @@ export default function UsersPage() {
                         Manage user accounts and permissions
                     </p>
                 </div>
-                <Button onClick={createModal.open}>
-                    <Plus className="h-4 w-4" />
-                    Add User
-                </Button>
+                <div className="flex gap-2">
+                    <select
+                        className="h-10 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as any)}
+                    >
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                    <Button onClick={createModal.open}>
+                        <Plus className="h-4 w-4" />
+                        Add User
+                    </Button>
+                </div>
             </div>
 
             <DataTable
@@ -169,6 +191,12 @@ export default function UsersPage() {
                 onPageChange={setPage}
                 onPerPageChange={setPerPage}
                 onSearchChange={setSearch}
+                onSort={(key, order) => {
+                    setSortBy(key as string);
+                    setSortOrder(order);
+                }}
+                sortBy={sortBy}
+                sortOrder={sortOrder}
                 onEdit={openEditModal}
                 onDelete={openDeleteModal}
             />
@@ -177,6 +205,7 @@ export default function UsersPage() {
                 isOpen={createModal.isOpen}
                 onClose={createModal.close}
                 onSubmit={handleCreate}
+                roleType="user"
             />
 
             {selectedUser && (
@@ -190,10 +219,11 @@ export default function UsersPage() {
                     initialData={{
                         name: selectedUser.name,
                         email: selectedUser.email,
-                        role: selectedUser.role.name, // Access name or id depending on what UserForm expects. UserForm expects string. 
+                        role: selectedUser.role._id || selectedUser.role.id,
                         isActive: selectedUser.isActive,
                     }}
                     isEdit
+                    roleType="user"
                 />
             )}
 

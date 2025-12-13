@@ -60,12 +60,15 @@ export interface DataTableProps<T> {
     onPageChange?: (page: number) => void;
     onPerPageChange?: (perPage: number) => void;
     onSearchChange?: (value: string) => void;
+    onSort?: (key: string, direction: 'asc' | 'desc') => void;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
 }
 
 type SortDirection = "asc" | "desc" | null;
 
 export function DataTable<T extends { id: string | number }>({
-    data,
+    data = [],
     columns,
     isLoading = false,
     emptyMessage = "No data available",
@@ -87,12 +90,18 @@ export function DataTable<T extends { id: string | number }>({
     onPageChange,
     onPerPageChange,
     onSearchChange,
+    onSort,
+    sortBy,
+    sortOrder,
 }: DataTableProps<T>) {
     const [search, setSearch] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [perPage, setPerPage] = useState(defaultPerPage);
-    const [sortKey, setSortKey] = useState<string | null>(null);
-    const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+    const [internalSortKey, setInternalSortKey] = useState<string | null>(null);
+    const [internalSortDirection, setInternalSortDirection] = useState<SortDirection>(null);
+
+    const activeSortKey = sortBy || internalSortKey;
+    const activeSortDirection = sortOrder || internalSortDirection;
 
     // Filter data based on search (Client-side only)
     const filteredData = useMemo(() => {
@@ -117,20 +126,20 @@ export function DataTable<T extends { id: string | number }>({
     // Sort data (Client-side only)
     const sortedData = useMemo(() => {
         if (manualPagination) return filteredData;
-        if (!sortKey || !sortDirection) return filteredData;
+        if (!activeSortKey || !activeSortDirection) return filteredData;
 
         return [...filteredData].sort((a, b) => {
-            const aValue = getNestedValue(a, sortKey);
-            const bValue = getNestedValue(b, sortKey);
+            const aValue = getNestedValue(a, activeSortKey);
+            const bValue = getNestedValue(b, activeSortKey);
 
             if (aValue === bValue) return 0;
             if (aValue === null || aValue === undefined) return 1;
             if (bValue === null || bValue === undefined) return -1;
 
             const comparison = aValue < bValue ? -1 : 1;
-            return sortDirection === "asc" ? comparison : -comparison;
+            return activeSortDirection === "asc" ? comparison : -comparison;
         });
-    }, [filteredData, sortKey, sortDirection, manualPagination]);
+    }, [filteredData, activeSortKey, activeSortDirection, manualPagination]);
 
     // Paginate data
     const paginatedData = useMemo(() => {
@@ -148,24 +157,30 @@ export function DataTable<T extends { id: string | number }>({
 
     // Handle sort
     const handleSort = useCallback((key: string) => {
-        if (sortKey !== key) {
-            setSortKey(key);
-            setSortDirection("asc");
+        if (onSort) {
+            const newDirection = activeSortKey === key && activeSortDirection === 'asc' ? 'desc' : 'asc';
+            onSort(key, newDirection);
+            return;
+        }
+
+        if (internalSortKey !== key) {
+            setInternalSortKey(key);
+            setInternalSortDirection("asc");
         } else {
-            if (sortDirection === "asc") {
-                setSortDirection("desc");
-            } else if (sortDirection === "desc") {
-                setSortKey(null);
-                setSortDirection(null);
+            if (internalSortDirection === "asc") {
+                setInternalSortDirection("desc");
+            } else if (internalSortDirection === "desc") {
+                setInternalSortKey(null);
+                setInternalSortDirection(null);
             } else {
-                setSortDirection("asc");
+                setInternalSortDirection("asc");
             }
         }
         // Note: Server-side sorting not fully implemented in this UI unless we add onSortChange
         if (!manualPagination) {
             setCurrentPage(1);
         }
-    }, [sortKey, sortDirection, manualPagination]);
+    }, [activeSortKey, activeSortDirection, internalSortKey, internalSortDirection, manualPagination, onSort]);
 
     // Handle page change
     const handlePageChange = useCallback((page: number) => {
@@ -259,10 +274,10 @@ export function DataTable<T extends { id: string | number }>({
                                         {column.header}
                                         {column.sortable && (
                                             <span className="ml-1">
-                                                {sortKey === column.key ? (
-                                                    sortDirection === "asc" ? (
+                                                {activeSortKey === column.key ? (
+                                                    activeSortDirection === "asc" ? (
                                                         <ChevronUp className="h-4 w-4" />
-                                                    ) : sortDirection === "desc" ? (
+                                                    ) : activeSortDirection === "desc" ? (
                                                         <ChevronDown className="h-4 w-4" />
                                                     ) : (
                                                         <ChevronsUpDown className="h-4 w-4 opacity-30" />
@@ -442,79 +457,113 @@ function DataTableActions<T extends { id: string | number }>({
     if (!hasDefaultActions && !hasCustomActions) return null;
 
     return (
-        <div className="relative inline-block text-left">
-            <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsOpen(!isOpen)}
-                className="h-8 w-8"
-            >
-                <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">Actions</span>
-            </Button>
+        <>
+            {/* Desktop: Inline Actions */}
+            <div className="hidden items-center justify-end gap-2 md:flex">
+                {onView && (
+                    <Button variant="ghost" size="icon" onClick={() => onView(item)} title="View">
+                        <Eye className="h-4 w-4" />
+                    </Button>
+                )}
+                {onEdit && (
+                    <Button variant="ghost" size="icon" onClick={() => onEdit(item)} title="Edit">
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                )}
+                {visibleActions.map((action, index) => (
+                    <Button
+                        key={index}
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => action.onClick(item)}
+                        title={action.label}
+                        className={action.variant === "danger" ? "text-red-500 hover:text-red-600" : ""}
+                    >
+                        {action.icon}
+                    </Button>
+                ))}
+                {onDelete && (
+                    <Button variant="ghost" size="icon" onClick={() => onDelete(item)} title="Delete" className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                )}
+            </div>
 
-            {isOpen && (
-                <>
-                    <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-                    <div className="absolute right-0 z-20 mt-1 w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                        {onView && (
-                            <button
-                                onClick={() => {
-                                    onView(item);
-                                    setIsOpen(false);
-                                }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                            >
-                                <Eye className="h-4 w-4" />
-                                View
-                            </button>
-                        )}
-                        {onEdit && (
-                            <button
-                                onClick={() => {
-                                    onEdit(item);
-                                    setIsOpen(false);
-                                }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                            >
-                                <Edit className="h-4 w-4" />
-                                Edit
-                            </button>
-                        )}
-                        {visibleActions.map((action, index) => (
-                            <button
-                                key={index}
-                                onClick={() => {
-                                    action.onClick(item);
-                                    setIsOpen(false);
-                                }}
-                                className={cn(
-                                    "flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700",
-                                    action.variant === "danger"
-                                        ? "text-red-600 dark:text-red-400"
-                                        : "text-gray-700 dark:text-gray-300"
-                                )}
-                            >
-                                {action.icon}
-                                {action.label}
-                            </button>
-                        ))}
-                        {onDelete && (
-                            <button
-                                onClick={() => {
-                                    onDelete(item);
-                                    setIsOpen(false);
-                                }}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-700"
-                            >
-                                <Trash2 className="h-4 w-4" />
-                                Delete
-                            </button>
-                        )}
-                    </div>
-                </>
-            )}
-        </div>
+            {/* Mobile: Dropdown Actions */}
+            <div className="md:hidden relative inline-block text-left">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="h-8 w-8"
+                >
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Actions</span>
+                </Button>
+
+                {isOpen && (
+                    <>
+                        <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+                        <div className="absolute right-0 z-20 mt-1 w-40 rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+                            {onView && (
+                                <button
+                                    onClick={() => {
+                                        onView(item);
+                                        setIsOpen(false);
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                                >
+                                    <Eye className="h-4 w-4" />
+                                    View
+                                </button>
+                            )}
+                            {onEdit && (
+                                <button
+                                    onClick={() => {
+                                        onEdit(item);
+                                        setIsOpen(false);
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                                >
+                                    <Edit className="h-4 w-4" />
+                                    Edit
+                                </button>
+                            )}
+                            {visibleActions.map((action, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => {
+                                        action.onClick(item);
+                                        setIsOpen(false);
+                                    }}
+                                    className={cn(
+                                        "flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700",
+                                        action.variant === "danger"
+                                            ? "text-red-600 dark:text-red-400"
+                                            : "text-gray-700 dark:text-gray-300"
+                                    )}
+                                >
+                                    {action.icon}
+                                    {action.label}
+                                </button>
+                            ))}
+                            {onDelete && (
+                                <button
+                                    onClick={() => {
+                                        onDelete(item);
+                                        setIsOpen(false);
+                                    }}
+                                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-700"
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                    Delete
+                                </button>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
+        </>
     );
 }
 

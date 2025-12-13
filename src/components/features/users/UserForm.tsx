@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button, Input, Select, Modal, ModalFooter } from "@/components/ui";
 import { UserFormData } from "@/types";
 
@@ -12,23 +12,48 @@ interface UserFormProps {
     isEdit?: boolean;
 }
 
-const ROLES = [
-    { value: "user", label: "User" },
-    { value: "admin", label: "Admin" },
-];
-
 export function UserForm({
     isOpen,
     onClose,
     onSubmit,
     initialData,
     isEdit = false,
-}: UserFormProps) {
+    roleType
+}: UserFormProps & { roleType?: 'admin' | 'user' }) {
+    const [roles, setRoles] = useState<any[]>([]);
+    const [isFetchingRoles, setIsFetchingRoles] = useState(false);
+
+    useEffect(() => {
+        const fetchRoles = async () => {
+            try {
+                setIsFetchingRoles(true);
+                // Assuming api.get returns axios response, so res.data is the body
+                const res = await import("@/lib/api").then(m => m.api.get("/roles"));
+                // Response structure: { success: true, data: Role[] }
+                let fetchedRoles = res.data.data || [];
+                if (roleType) {
+                    fetchedRoles = fetchedRoles.filter((r: any) => r.type === roleType);
+                }
+                setRoles(fetchedRoles);
+
+                // Set default role if creating and not set
+                if (!isEdit && !formData.role && fetchedRoles.length > 0) {
+                    setFormData(prev => ({ ...prev, role: fetchedRoles[0]._id }));
+                }
+            } catch (error) {
+                console.error("Failed to fetch roles:", error);
+            } finally {
+                setIsFetchingRoles(false);
+            }
+        };
+        fetchRoles();
+    }, [roleType, isEdit]);
+
     const [formData, setFormData] = useState<UserFormData>({
         name: initialData?.name || "",
         email: initialData?.email || "",
         password: "",
-        role: initialData?.role || "user",
+        role: initialData?.role || "", // This should be ID
         isActive: initialData?.isActive ?? true,
     });
     const [errors, setErrors] = useState<Partial<Record<keyof UserFormData, string>>>({});
@@ -67,7 +92,11 @@ export function UserForm({
 
         setIsLoading(true);
         try {
-            await onSubmit(formData);
+            const submissionData = { ...formData };
+            if (!submissionData.password) {
+                delete submissionData.password;
+            }
+            await onSubmit(submissionData);
             onClose();
         } catch (error) {
             console.error(error);
@@ -132,8 +161,9 @@ export function UserForm({
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     error={errors.role}
-                    options={ROLES}
-                    placeholder="Select a role"
+                    options={roles.map(r => ({ value: r._id, label: r.title || r.name }))}
+                    placeholder={isFetchingRoles ? "Loading roles..." : "Select a role"}
+                    disabled={isFetchingRoles}
                 />
 
                 <Select
